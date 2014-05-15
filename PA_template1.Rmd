@@ -1,0 +1,91 @@
+Peer Assessment 1
+========================================================
+
+This assignment contents multiple parts. The entire assignment is completed in a single R markdown document which was processed by knitr and be transformed into an HTML file.
+
+Loading and preprocessing the data
+```{r}
+# Load the data 
+step <- read.csv("./activity.csv",stringsAsFactors=FALSE)
+stepping<-na.omit(step)
+
+```
+
+Histogram of the total number of steps taken each day
+```{r Histogram of the total number of steps taken each day}
+# Load plyr package
+library("plyr")
+
+# Create df for "steps counting"
+count<-ddply(stepping, .(date), summarize, steps=sum(steps)) 
+
+# Load ggplot2 package
+library("ggplot2")
+
+# Histogram of the total number of steps taken each day
+qplot(date, data=count, weight=steps)+ geom_histogram(colour="white", fill="red",binwidth=.5)+ theme(axis.text.x = element_text(angle=90)) + xlab("Days") + ylab("Steps")
+
+```
+
+The mean and median total number of steps taken per day
+```{r}
+median(count$steps)
+mean(count$steps)
+
+```
+
+Average daily activity pattern
+```{r Average daily activity pattern}
+# Time series plot  of the 5-minute interval (x-axis) and the average number of steps taken
+count_int<-ddply(stepping, .(interval), summarize, steps=mean(steps))
+ggplot( count_int, aes( interval, steps )) + geom_line() + ylab("average number of steps taken")
+
+#Interval with maximum number of steps
+count_int$interval[which.max(count_int$steps)]
+
+```
+
+Imputing missing values
+```{r Histogram of the total number of steps taken each day - Imputed}
+# Imputing missing values
+# Report the total number of missing values in the dataset
+sum(is.na(step))
+
+# Filling in all of the missing values in the dataset
+library("mice")
+library("lattice")
+
+# Imputation with "mice" function
+step_imp = mice(step)
+
+# Histogram of the total number of steps taken each day (after imputation)
+count_imp<-ddply(complete(step_imp), .(date), summarize, steps=sum(steps))
+qplot(date, data=count_imp, weight=steps)+ geom_histogram(colour="white", fill="blue",binwidth=.5)+ theme(axis.text.x = element_text(angle=90)) + xlab("Days") + ylab("Steps")
+
+# The mean and median total number of steps taken per day
+median(count_imp$steps)
+mean(count_imp$steps)
+
+# The impact of imputing missing data on the estimates of the total daily number of steps
+ifelse(median(count$steps) < median(count_imp$steps), "Median of imputing dataset is bigger than previous one", "Median of imputing dataset is smaller than previous one")
+ifelse(mean(count$steps) < mean(count_imp$steps), "Mean of imputing dataset is bigger than previous one", "Mean of imputing dataset is smaller than previous one")
+```
+
+The differences in activity patterns between weekdays and weekends
+```{r Activity patterns between weekdays and weekends}
+# the dataset with two levels, indicating whether a given date is a weekday or weekend day.
+week<-complete(step_imp)
+week$date<-weekdays(as.Date(week$date))
+
+week$date[week$date=="nede¾a"|week$date=="sobota"]<- "weekend"
+week$date[week$date=="pondelok"|week$date=="utorok"|week$date=="streda"|week$date=="štvrtok"|week$date=="piatok"] <- "weekday"
+
+# Time series plot  of the 5-minute interval (x-axis) and the average number of steps taken
+
+xyplot(steps ~ interval| date,data=week,type="l",layout=c(1,2))
+
+```
+
+
+
+End of first peer assignment!
